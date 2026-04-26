@@ -24,6 +24,7 @@ class RunOptions:
     drop_blocked_files: bool = False
     sanitized_counterparts: bool = False
     public_only: bool = False
+    refresh_readme: bool = True
     approve_new: set[str] | None = None
     interactive: bool = True
 
@@ -71,7 +72,13 @@ def run_manager(options: RunOptions) -> tuple[list[ProjectRunResult], Path]:
             results.append(result)
             continue
 
-        prepared = prepare_project(candidate.path, staging_root, candidate.slug, drop_blocked_files=options.drop_blocked_files)
+        prepared = prepare_project(
+            candidate.path,
+            staging_root,
+            candidate.slug,
+            drop_blocked_files=options.drop_blocked_files,
+            refresh_readme_file=options.refresh_readme,
+        )
         result.prepared = prepared
         if not prepared.clean:
             result.action = "blocked"

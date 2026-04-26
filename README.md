@@ -35,8 +35,20 @@ To update public sanitized counterpart repositories, such as `public-ops` or nes
 python3 -m github_manager run --drop-blocked-files --sanitized-counterparts --public-only
 ```
 
+Each prepared update refreshes `README.md` by default. Existing READMEs are preserved with a managed public-copy note, and missing READMEs are generated from the sanitized repository contents.
+
 By default, new repositories are created as public repositories under the `ropepop` GitHub account. Existing repositories are treated as managed only when they belong to that account.
 
 ## Safety Rules
 
 The strict checker blocks publishing and syncing when it finds likely secrets, local environment files, databases, private keys, production configs, archives, large files, local user paths, or unclear binary files.
+
+<!-- github-manager-readme:start -->
+## Public Copy Notes
+
+This repository is refreshed by GitHub Manager from a sanitized staging copy.
+Files that look private, generated, or unsafe for public release are left out before each update.
+
+- Risky files removed in the latest sanitation pass: 0
+- Top-level items in this public copy: `github_manager/`, `tests/`, `.gitignore`, `pyproject.toml`
+<!-- github-manager-readme:end -->

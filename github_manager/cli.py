@@ -47,6 +47,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Skip private repositories and only update public sanitized repositories.",
     )
     run_parser.add_argument(
+        "--no-readme-refresh",
+        action="store_true",
+        help="Do not create or update README notes in staged sanitized copies.",
+    )
+    run_parser.add_argument(
         "--approve-new",
         action="append",
         default=[],
@@ -79,6 +84,7 @@ def main(argv: list[str] | None = None) -> int:
             drop_blocked_files=args.drop_blocked_files,
             sanitized_counterparts=args.sanitized_counterparts,
             public_only=args.public_only,
+            refresh_readme=not args.no_readme_refresh,
             approve_new=set(args.approve_new),
             interactive=not args.non_interactive,
         )

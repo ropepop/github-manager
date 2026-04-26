@@ -6,9 +6,12 @@ import shutil
 from pathlib import Path
 
 from .models import Finding, PreparedProject
+from .readme import refresh_readme
 
 
 GENERATED_DIR_NAMES = {
+    ".agent",
+    ".agents",
     ".git",
     ".codex",
     ".codex-tmp",
@@ -29,6 +32,8 @@ GENERATED_DIR_NAMES = {
     ".pytest_cache",
     ".playwright-cli",
     ".playwright-mcp",
+    ".tmp-playwright-interactive",
+    ".trae",
     ".artifacts",
     "coverage",
     "dogfood-output",
@@ -44,7 +49,10 @@ GENERATED_DIR_NAMES = {
 
 SKIPPED_FILE_NAMES = {
     ".DS_Store",
+    '"$TMP"',
+    "AGENTS.md",
     "Thumbs.db",
+    "skills-lock.json",
 }
 
 SKIPPED_FILE_PATTERNS = [
@@ -174,7 +182,13 @@ TEXT_EXTENSIONS = {
 SAFE_BINARY_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".woff", ".woff2", ".ttf", ".otf"}
 
 
-def prepare_project(source_path: Path, staging_root: Path, slug: str, drop_blocked_files: bool = False) -> PreparedProject:
+def prepare_project(
+    source_path: Path,
+    staging_root: Path,
+    slug: str,
+    drop_blocked_files: bool = False,
+    refresh_readme_file: bool = True,
+) -> PreparedProject:
     source_path = source_path.resolve()
     staged_path = (staging_root / slug).resolve()
     if staged_path.exists():
@@ -215,6 +229,11 @@ def prepare_project(source_path: Path, staging_root: Path, slug: str, drop_block
                 target.unlink()
                 skipped_files += 1
         findings = inspect_source(staged_path)
+
+    if refresh_readme_file:
+        refresh_readme(staged_path, slug, removed_findings)
+        refreshed_findings = inspect_source(staged_path)
+        findings = refreshed_findings if drop_blocked_files else _dedupe_findings(source_findings + refreshed_findings)
 
     return PreparedProject(
         source_path=source_path,
