@@ -20,6 +20,7 @@ MANIFEST_FILES = {
     "requirements.txt",
     "composer.json",
     "Gemfile",
+    "module.yaml",
 }
 
 PROJECT_HINT_FILES = {"README.md", "README", "LICENSE", "Makefile"}
@@ -62,7 +63,12 @@ IGNORED_DIR_NAMES = {
 }
 
 
-def scan_projects(documents_root: Path, excluded_roots: list[Path] | None = None) -> list[ProjectCandidate]:
+def scan_projects(
+    documents_root: Path,
+    excluded_roots: list[Path] | None = None,
+    collapse_nested: bool = True,
+    respect_git_roots: bool = True,
+) -> list[ProjectCandidate]:
     documents_root = documents_root.expanduser().resolve()
     excluded = [path.expanduser().resolve() for path in (excluded_roots or [])]
     raw: dict[Path, ProjectCandidate] = {}
@@ -80,7 +86,7 @@ def scan_projects(documents_root: Path, excluded_roots: list[Path] | None = None
         if score < 4:
             continue
 
-        git_root = get_git_root(root_path)
+        git_root = get_git_root(root_path) if respect_git_roots else None
         candidate_path = git_root if git_root and _is_inside(git_root, documents_root) else root_path
         if _is_excluded(candidate_path, excluded):
             continue
@@ -101,7 +107,7 @@ def scan_projects(documents_root: Path, excluded_roots: list[Path] | None = None
     candidates = sorted(raw.values(), key=lambda item: (len(item.path.parts), str(item.path)))
     selected: list[ProjectCandidate] = []
     for candidate in candidates:
-        if any(_is_inside(candidate.path, chosen.path) and candidate.path != chosen.path for chosen in selected):
+        if collapse_nested and any(_is_inside(candidate.path, chosen.path) and candidate.path != chosen.path for chosen in selected):
             continue
         selected.append(candidate)
     return selected
@@ -151,4 +157,3 @@ def _is_inside(path: Path, root: Path) -> bool:
         return True
     except ValueError:
         return False
-

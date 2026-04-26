@@ -6,15 +6,39 @@ from .models import Classification, GitHubRepo, ProjectCandidate
 from .naming import normalize_name
 
 
-def classify_project(candidate: ProjectCandidate, repos: list[GitHubRepo], owner: str) -> Classification:
+def classify_project(
+    candidate: ProjectCandidate,
+    repos: list[GitHubRepo],
+    owner: str,
+    prefer_sanitized_counterpart: bool = False,
+    public_only: bool = False,
+) -> Classification:
     repos_by_exact = {normalize_name(repo.name): repo for repo in repos}
+    repos_by_name = {repo.name: repo for repo in repos}
 
     if candidate.github_remote:
         if candidate.github_remote.owner == owner:
+            remote_repo = repos_by_name.get(candidate.github_remote.name, candidate.github_remote)
+            if prefer_sanitized_counterpart:
+                counterpart = _public_counterpart(candidate.slug, repos_by_exact)
+                if counterpart and getattr(remote_repo, "is_private", False):
+                    return Classification(
+                        status="published",
+                        match_method="public counterpart",
+                        repo=counterpart,
+                        reason="A public sanitized counterpart exists for this private local repository.",
+                    )
+            if public_only and getattr(remote_repo, "is_private", False):
+                return Classification(
+                    status="published-private",
+                    match_method="local remote",
+                    repo=remote_repo,
+                    reason="The local project points to a private repository, and this run targets public sanitized repos only.",
+                )
             return Classification(
                 status="published",
                 match_method="local remote",
-                repo=candidate.github_remote,
+                repo=remote_repo,
                 reason="The local project already points to a GitHub repository for this account.",
             )
         return Classification(
@@ -26,6 +50,13 @@ def classify_project(candidate: ProjectCandidate, repos: list[GitHubRepo], owner
 
     exact = repos_by_exact.get(candidate.slug)
     if exact:
+        if public_only and exact.is_private:
+            return Classification(
+                status="published-private",
+                match_method="exact name",
+                repo=exact,
+                reason="A matching repository exists, but it is private and this run targets public sanitized repos only.",
+            )
         return Classification(
             status="published",
             match_method="exact name",
@@ -35,6 +66,13 @@ def classify_project(candidate: ProjectCandidate, repos: list[GitHubRepo], owner
 
     fuzzy = _high_confidence_match(candidate.slug, repos)
     if fuzzy:
+        if public_only and fuzzy.is_private:
+            return Classification(
+                status="published-private",
+                match_method="high-confidence name",
+                repo=fuzzy,
+                reason="A matching repository exists, but it is private and this run targets public sanitized repos only.",
+            )
         return Classification(
             status="published",
             match_method="high-confidence name",
@@ -48,6 +86,14 @@ def classify_project(candidate: ProjectCandidate, repos: list[GitHubRepo], owner
         repo=None,
         reason="No GitHub remote or high-confidence repository match was found.",
     )
+
+
+def _public_counterpart(slug: str, repos_by_exact: dict[str, GitHubRepo]) -> GitHubRepo | None:
+    for name in (f"public-{slug}", f"{slug}-public"):
+        repo = repos_by_exact.get(name)
+        if repo and not repo.is_private:
+            return repo
+    return None
 
 
 def _high_confidence_match(slug: str, repos: list[GitHubRepo]) -> GitHubRepo | None:
@@ -66,4 +112,3 @@ def _high_confidence_match(slug: str, repos: list[GitHubRepo]) -> GitHubRepo | N
     if best_score >= 0.92 and best_score - second_score >= 0.05:
         return best_repo
     return None
-

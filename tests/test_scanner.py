@@ -24,7 +24,22 @@ class ScannerTests(unittest.TestCase):
             self.assertEqual([candidate.path for candidate in candidates], [root.resolve()])
             self.assertEqual(candidates[0].slug, "pixel-phone")
 
+    def test_can_include_nested_project_candidates(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            documents = Path(tmp) / "Documents"
+            root = documents / "ops"
+            nested = root / "automation" / "task-executor"
+            nested.mkdir(parents=True)
+            (root / "README.md").write_text("# Ops\n", encoding="utf-8")
+            (root / ".github").mkdir()
+            (nested / "module.yaml").write_text("name: task-executor\n", encoding="utf-8")
+            (nested / "README.md").write_text("# Task Executor\n", encoding="utf-8")
+
+            candidates = scan_projects(documents, collapse_nested=False, respect_git_roots=False)
+
+            self.assertIn(root.resolve(), [candidate.path for candidate in candidates])
+            self.assertIn(nested.resolve(), [candidate.path for candidate in candidates])
+
 
 if __name__ == "__main__":
     unittest.main()
-

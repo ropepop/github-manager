@@ -75,21 +75,14 @@ class GitHubClient:
     def create_public_repo_from_path(self, name: str, staged_path: Path) -> GitHubRepo:
         ensure_git_commit(staged_path, "Initial sanitized publish")
         full_name = f"{self.owner}/{name}"
-        result = run_command(
-            [
-                "gh",
-                "repo",
-                "create",
-                full_name,
-                "--public",
-                "--source",
-                str(staged_path),
-                "--remote",
-                "origin",
-                "--push",
-            ],
-            cwd=staged_path,
-        )
+        view = run_command(["gh", "repo", "view", full_name, "--json", "name"], cwd=staged_path)
+        if view.returncode != 0:
+            result = run_command(["gh", "repo", "create", full_name, "--public"], cwd=staged_path)
+            if result.returncode != 0:
+                raise RuntimeError(result.stderr.strip() or result.stdout.strip())
+        _set_origin(staged_path, f"https://github.com/{full_name}.git")
+        run_command(["gh", "auth", "setup-git"], cwd=staged_path)
+        result = run_command(["git", "push", "-u", "origin", "HEAD:main"], cwd=staged_path)
         if result.returncode != 0:
             raise RuntimeError(result.stderr.strip() or result.stdout.strip())
         return GitHubRepo(owner=self.owner, name=name, url=f"https://github.com/{full_name}")
@@ -109,3 +102,12 @@ def ensure_git_commit(path: Path, message: str) -> None:
         if result.returncode != 0 and "nothing to commit" not in (result.stdout + result.stderr).lower():
             raise RuntimeError(result.stderr.strip() or result.stdout.strip())
 
+
+def _set_origin(path: Path, url: str) -> None:
+    existing = run_command(["git", "remote", "get-url", "origin"], cwd=path)
+    if existing.returncode == 0:
+        result = run_command(["git", "remote", "set-url", "origin", url], cwd=path)
+    else:
+        result = run_command(["git", "remote", "add", "origin", url], cwd=path)
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr.strip() or result.stdout.strip())

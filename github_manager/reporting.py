@@ -21,7 +21,7 @@ def write_run_report(workspace: Path, results: list[ProjectRunResult], dry_run: 
         "## Summary",
         "",
     ]
-    for status in ["published", "unpublished", "published-external"]:
+    for status in sorted({result.classification.status for result in results}):
         count = sum(1 for result in results if result.classification.status == status)
         lines.append(f"- {status}: {count}")
     lines.extend(["", "## Projects", ""])

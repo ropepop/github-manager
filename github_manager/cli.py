@@ -37,6 +37,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Remove files that trigger strict checks from the staged copy, then check again before publishing.",
     )
     run_parser.add_argument(
+        "--sanitized-counterparts",
+        action="store_true",
+        help="Prefer public sanitized counterpart repos such as public-ops, and include matching nested projects.",
+    )
+    run_parser.add_argument(
+        "--public-only",
+        action="store_true",
+        help="Skip private repositories and only update public sanitized repositories.",
+    )
+    run_parser.add_argument(
         "--approve-new",
         action="append",
         default=[],
@@ -67,6 +77,8 @@ def main(argv: list[str] | None = None) -> int:
             dry_run=args.dry_run,
             no_sync=args.no_sync,
             drop_blocked_files=args.drop_blocked_files,
+            sanitized_counterparts=args.sanitized_counterparts,
+            public_only=args.public_only,
             approve_new=set(args.approve_new),
             interactive=not args.non_interactive,
         )

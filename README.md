@@ -29,6 +29,12 @@ To publish a sanitized copy that drops files flagged by the safety checker:
 python3 -m github_manager run --drop-blocked-files --no-sync --approve-new pixel-phone
 ```
 
+To update public sanitized counterpart repositories, such as `public-ops` or nested project repos like `task-executor`:
+
+```bash
+python3 -m github_manager run --drop-blocked-files --sanitized-counterparts --public-only
+```
+
 By default, new repositories are created as public repositories under the `ropepop` GitHub account. Existing repositories are treated as managed only when they belong to that account.
 
 ## Safety Rules
