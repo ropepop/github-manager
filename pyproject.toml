@@ -1,0 +1,14 @@
+[project]
+name = "github-manager"
+version = "0.1.0"
+description = "Agent-guided discovery, sanitization, publishing, and syncing of local coding projects to GitHub."
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+github-manager = "github_manager.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
