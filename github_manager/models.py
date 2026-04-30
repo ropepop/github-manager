@@ -54,6 +54,14 @@ class Finding:
         return self.severity == "block"
 
 
+@dataclass(frozen=True)
+class ReadmeRefreshResult:
+    mode: str
+    detail: str
+    model: str | None = None
+    archived_previous: bool = False
+
+
 @dataclass
 class PreparedProject:
     source_path: Path
@@ -62,6 +70,7 @@ class PreparedProject:
     copied_files: int
     skipped_files: int
     removed_findings: list[Finding] = field(default_factory=list)
+    readme_result: ReadmeRefreshResult | None = None
 
     @property
     def clean(self) -> bool:

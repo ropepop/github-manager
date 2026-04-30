@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .models import ProjectRunResult
@@ -9,7 +9,7 @@ from .models import ProjectRunResult
 def write_run_report(workspace: Path, results: list[ProjectRunResult], dry_run: bool) -> Path:
     report_dir = workspace / "reports"
     report_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     report_path = report_dir / f"run-{timestamp}.md"
     lines = [
         "# GitHub Manager Run Report",
@@ -52,6 +52,14 @@ def write_run_report(workspace: Path, results: list[ProjectRunResult], dry_run: 
                     f"- Strict check: {'passed' if prepared.clean else 'blocked'}",
                 ]
             )
+            if prepared.readme_result:
+                readme_result = prepared.readme_result
+                label = readme_result.mode.replace("-", " ")
+                if readme_result.model:
+                    label = f"{label} ({readme_result.model})"
+                lines.append(f"- README generation: {label}")
+                lines.append(f"- README detail: {readme_result.detail}")
+                lines.append(f"- Previous README archived: {'yes' if readme_result.archived_previous else 'no'}")
             if prepared.removed_findings:
                 lines.append("")
                 lines.append("Removed during sanitation:")

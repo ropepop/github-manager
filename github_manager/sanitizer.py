@@ -219,19 +219,21 @@ def prepare_project(
             copied_files += 1
 
     removed_findings: list[Finding] = []
-    findings = source_findings
+    staged_findings = inspect_source(staged_path)
+    findings = _dedupe_findings(source_findings + staged_findings)
     if drop_blocked_files:
-        staged_findings = inspect_source(staged_path)
         removed_findings = _dedupe_findings(source_findings + staged_findings)
         for finding in staged_findings:
             target = staged_path / finding.path
             if target.exists() and target.is_file():
                 target.unlink()
                 skipped_files += 1
-        findings = inspect_source(staged_path)
+        staged_findings = inspect_source(staged_path)
+        findings = staged_findings
 
+    readme_result = None
     if refresh_readme_file:
-        refresh_readme(staged_path, slug, removed_findings)
+        readme_result = refresh_readme(staged_path, slug, removed_findings, staged_findings=staged_findings)
         refreshed_findings = inspect_source(staged_path)
         findings = refreshed_findings if drop_blocked_files else _dedupe_findings(source_findings + refreshed_findings)
 
@@ -242,6 +244,7 @@ def prepare_project(
         copied_files=copied_files,
         skipped_files=skipped_files,
         removed_findings=removed_findings,
+        readme_result=readme_result,
     )
 
 

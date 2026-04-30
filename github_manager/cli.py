@@ -115,6 +115,12 @@ def _print_results(results) -> None:
         print(f"  {result.detail}")
         if result.prepared and result.prepared.findings:
             print(f"  Blocked findings: {len(result.prepared.findings)}")
+        if result.prepared and result.prepared.readme_result:
+            readme_result = result.prepared.readme_result
+            label = readme_result.mode.replace("-", " ")
+            if readme_result.model:
+                label = f"{label} ({readme_result.model})"
+            print(f"  README: {label}")
 
 
 if __name__ == "__main__":

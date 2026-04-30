@@ -32,6 +32,8 @@ class SanitizerTests(unittest.TestCase):
             self.assertFalse((prepared.staged_path / ".env").exists())
             self.assertFalse((prepared.staged_path / "data.db").exists())
             self.assertFalse((prepared.staged_path / "node_modules").exists())
+            self.assertIsNotNone(prepared.readme_result)
+            self.assertEqual(prepared.readme_result.mode, "local-generated")
 
     def test_drop_blocked_files_cleans_staged_copy(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
