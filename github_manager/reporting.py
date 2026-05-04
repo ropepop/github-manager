@@ -41,6 +41,11 @@ def write_run_report(workspace: Path, results: list[ProjectRunResult], dry_run: 
         )
         if classification.repo:
             lines.append(f"- Repository: {classification.repo.url}")
+        if result.private_action != "none":
+            lines.append(f"- Private action: {result.private_action}")
+            lines.append(f"- Private detail: {result.private_detail}")
+            if result.private_repo:
+                lines.append(f"- Private repository: {result.private_repo.url}")
         if result.prepared:
             prepared = result.prepared
             lines.extend(

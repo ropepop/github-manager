@@ -44,7 +44,12 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser.add_argument(
         "--public-only",
         action="store_true",
-        help="Skip private repositories and only update public sanitized repositories.",
+        help="Use public sanitized targets after first updating matching private source repositories.",
+    )
+    run_parser.add_argument(
+        "--no-private-first",
+        action="store_true",
+        help="Skip the private-source update pass during sanitized public runs.",
     )
     run_parser.add_argument(
         "--no-readme-refresh",
@@ -84,6 +89,7 @@ def main(argv: list[str] | None = None) -> int:
             drop_blocked_files=args.drop_blocked_files,
             sanitized_counterparts=args.sanitized_counterparts,
             public_only=args.public_only,
+            private_first=not args.no_private_first,
             refresh_readme=not args.no_readme_refresh,
             approve_new=set(args.approve_new),
             interactive=not args.non_interactive,
@@ -112,6 +118,9 @@ def _scan(documents_root: Path, workspace: Path, owner: str) -> int:
 def _print_results(results) -> None:
     for result in results:
         print(f"{result.candidate.slug}: {result.action}")
+        if result.private_action != "none":
+            print(f"  Private: {result.private_action}")
+            print(f"    {result.private_detail}")
         print(f"  {result.detail}")
         if result.prepared and result.prepared.findings:
             print(f"  Blocked findings: {len(result.prepared.findings)}")

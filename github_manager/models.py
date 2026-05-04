@@ -82,5 +82,8 @@ class ProjectRunResult:
     candidate: ProjectCandidate
     classification: Classification
     prepared: PreparedProject | None = None
+    private_repo: GitHubRepo | None = None
+    private_action: str = "none"
+    private_detail: str = ""
     action: str = "none"
     detail: str = ""

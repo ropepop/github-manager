@@ -9,7 +9,7 @@ from .models import GitHubRepo
 
 
 GITHUB_REMOTE_RE = re.compile(
-    r"(?:https://github\.com/|git@github\.com:)(?P<owner>[^/]+)/(?P<repo>[^/.]+)(?:\.git)?/?$"
+    r"(?:https://github\.com/|git@github\.com:)(?P<owner>[^/]+)/(?P<repo>[^/]+?)(?:\.git)?/?$"
 )
 
 
@@ -86,6 +86,24 @@ class GitHubClient:
         if result.returncode != 0:
             raise RuntimeError(result.stderr.strip() or result.stdout.strip())
         return GitHubRepo(owner=self.owner, name=name, url=f"https://github.com/{full_name}")
+
+    def ensure_private_repo(self, name: str) -> GitHubRepo:
+        full_name = f"{self.owner}/{name}"
+        view = run_command(["gh", "repo", "view", full_name, "--json", "name,url,isPrivate"])
+        if view.returncode == 0:
+            payload = json.loads(view.stdout)
+            if not payload.get("isPrivate"):
+                raise RuntimeError(f"{full_name} already exists, but it is not private.")
+            return GitHubRepo(
+                owner=self.owner,
+                name=payload["name"],
+                url=payload["url"],
+                is_private=True,
+            )
+        result = run_command(["gh", "repo", "create", full_name, "--private"])
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip() or result.stdout.strip())
+        return GitHubRepo(owner=self.owner, name=name, url=f"https://github.com/{full_name}", is_private=True)
 
 
 def ensure_git_commit(path: Path, message: str) -> None:

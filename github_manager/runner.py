@@ -24,6 +24,7 @@ class RunOptions:
     drop_blocked_files: bool = False
     sanitized_counterparts: bool = False
     public_only: bool = False
+    private_first: bool = True
     refresh_readme: bool = True
     approve_new: set[str] | None = None
     interactive: bool = True
@@ -42,6 +43,7 @@ def run_manager(options: RunOptions) -> tuple[list[ProjectRunResult], Path]:
         candidates = _with_public_counterpart_candidates(candidates, options.documents_root, workspace, repos)
     results: list[ProjectRunResult] = []
     targeted_repos: set[str] = set()
+    targeted_private_repos: set[str] = set()
 
     for candidate in candidates:
         classification = classify_project(
@@ -52,6 +54,13 @@ def run_manager(options: RunOptions) -> tuple[list[ProjectRunResult], Path]:
             public_only=options.public_only,
         )
         result = ProjectRunResult(candidate=candidate, classification=classification)
+        if options.private_first and (options.public_only or options.sanitized_counterparts):
+            _run_private_first(result, options, client, repos, targeted_private_repos)
+            if result.private_action == "failed":
+                result.action = "skipped"
+                result.detail = "Skipped public sanitized sync because the private repository update failed."
+                results.append(result)
+                continue
         if classification.repo:
             target = classification.repo.full_name
             if target in targeted_repos:
@@ -68,10 +77,18 @@ def run_manager(options: RunOptions) -> tuple[list[ProjectRunResult], Path]:
             continue
         if classification.status == "published-private":
             result.action = "skipped"
-            result.detail = "Private repository skipped because this run targets public sanitized repositories."
+            if result.private_action not in {"none", "skipped"}:
+                result.detail = "No public sanitized counterpart was selected; private repository was handled first."
+            else:
+                result.detail = "Private repository skipped because this run targets public sanitized repositories."
             results.append(result)
             continue
         if classification.repo and classification.repo.is_private:
+            if result.private_action not in {"none", "skipped"}:
+                result.action = "skipped"
+                result.detail = "Private repository was handled before sanitized public work."
+                results.append(result)
+                continue
             if options.no_sync:
                 result.action = "skipped"
                 result.detail = "Sync disabled for this run."
@@ -137,6 +154,85 @@ def run_manager(options: RunOptions) -> tuple[list[ProjectRunResult], Path]:
 
     report_path = write_run_report(workspace, results, options.dry_run)
     return results, report_path
+
+
+def _run_private_first(
+    result: ProjectRunResult,
+    options: RunOptions,
+    client: GitHubClient,
+    repos: list[GitHubRepo],
+    targeted_private_repos: set[str],
+) -> None:
+    private_repo, needs_confirmation = _private_repo_for_candidate(result.candidate, repos, options.owner)
+    if private_repo is None:
+        return
+    result.private_repo = private_repo
+    if private_repo.full_name in targeted_private_repos:
+        result.private_action = "skipped"
+        result.private_detail = "Another local project candidate already targeted this private repository."
+        return
+    targeted_private_repos.add(private_repo.full_name)
+    if options.no_sync:
+        result.private_action = "skipped"
+        result.private_detail = "Private sync disabled for this run."
+        return
+    result.private_action = "private-sync-dry-run" if options.dry_run else "private-synced"
+    try:
+        sync_repo = private_repo
+        prefix = ""
+        if needs_confirmation:
+            if options.dry_run:
+                result.private_detail = (
+                    f"Would create or confirm private repository {private_repo.full_name}, "
+                    "then push the original project contents."
+                )
+                return
+            sync_repo = client.ensure_private_repo(private_repo.name)
+            result.private_repo = sync_repo
+            if not any(repo.full_name == sync_repo.full_name for repo in repos):
+                repos.append(sync_repo)
+            prefix = f"Ensured private repository {sync_repo.full_name}. "
+        result.private_detail = prefix + sync_private_project(
+            sync_repo,
+            result.candidate.path,
+            dry_run=options.dry_run,
+            initialize_if_missing=True,
+        )
+    except RuntimeError as exc:
+        result.private_action = "failed"
+        result.private_detail = f"Private repository update failed: {exc}"
+
+
+def _private_repo_for_candidate(
+    candidate,
+    repos: list[GitHubRepo],
+    owner: str,
+) -> tuple[GitHubRepo | None, bool]:
+    repos_by_name = {repo.name: repo for repo in repos}
+    repos_by_exact = {normalize_name(repo.name): repo for repo in repos}
+
+    if candidate.github_remote:
+        if candidate.github_remote.owner != owner:
+            return None, False
+        remote_repo = repos_by_name.get(candidate.github_remote.name)
+        if remote_repo:
+            if remote_repo.is_private:
+                return remote_repo, False
+            return None, False
+        return (
+            GitHubRepo(
+                owner=owner,
+                name=candidate.github_remote.name,
+                url=f"https://github.com/{owner}/{candidate.github_remote.name}",
+                is_private=True,
+            ),
+            True,
+        )
+
+    exact = repos_by_exact.get(candidate.slug)
+    if exact and exact.is_private:
+        return exact, False
+    return None, False
 
 
 def _with_public_counterpart_candidates(
