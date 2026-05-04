@@ -29,6 +29,18 @@ class ClassifierTests(unittest.TestCase):
 
         self.assertEqual(result.status, "published-external")
 
+    def test_external_remote_is_not_managed_in_public_only_run(self) -> None:
+        candidate = ProjectCandidate(
+            path=Path("/tmp/project"),
+            name="project",
+            slug="project",
+            github_remote=GitHubRepo(owner="someone", name="project", url="https://github.com/someone/project"),
+        )
+
+        result = classify_project(candidate, [], "ropepop", public_only=True)
+
+        self.assertEqual(result.status, "published-external")
+
     def test_private_remote_can_target_public_counterpart(self) -> None:
         candidate = ProjectCandidate(
             path=Path("/tmp/ops"),
@@ -54,6 +66,45 @@ class ClassifierTests(unittest.TestCase):
         result = classify_project(candidate, repos, "ropepop", public_only=True)
 
         self.assertEqual(result.status, "published-private")
+
+    def test_public_only_skips_private_local_remote_without_public_counterpart(self) -> None:
+        candidate = ProjectCandidate(
+            path=Path("/tmp/links"),
+            name="links",
+            slug="links",
+            github_remote=GitHubRepo(owner="ropepop", name="links", url="https://github.com/ropepop/links"),
+        )
+        repos = [GitHubRepo(owner="ropepop", name="links", url="https://github.com/ropepop/links", is_private=True)]
+
+        result = classify_project(
+            candidate,
+            repos,
+            "ropepop",
+            prefer_sanitized_counterpart=True,
+            public_only=True,
+        )
+
+        self.assertEqual(result.status, "published-private")
+        self.assertEqual(result.match_method, "local remote")
+
+    def test_public_only_skips_unconfirmed_local_remote_without_public_counterpart(self) -> None:
+        candidate = ProjectCandidate(
+            path=Path("/tmp/ticket-remote-private"),
+            name="ticket-remote-private",
+            slug="ticket-remote-private",
+            github_remote=GitHubRepo(owner="ropepop", name="ticket-remote", url="https://github.com/ropepop/ticket-remote"),
+        )
+
+        result = classify_project(
+            candidate,
+            [],
+            "ropepop",
+            prefer_sanitized_counterpart=True,
+            public_only=True,
+        )
+
+        self.assertEqual(result.status, "published-private")
+        self.assertEqual(result.match_method, "local remote")
 
 
 if __name__ == "__main__":

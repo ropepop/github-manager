@@ -18,27 +18,27 @@ def classify_project(
 
     if candidate.github_remote:
         if candidate.github_remote.owner == owner:
-            remote_repo = repos_by_name.get(candidate.github_remote.name, candidate.github_remote)
+            remote_repo = repos_by_name.get(candidate.github_remote.name)
             if prefer_sanitized_counterpart:
                 counterpart = _public_counterpart(candidate.slug, repos_by_exact)
-                if counterpart and getattr(remote_repo, "is_private", False):
+                if counterpart and (remote_repo is None or remote_repo.is_private):
                     return Classification(
                         status="published",
                         match_method="public counterpart",
                         repo=counterpart,
                         reason="A public sanitized counterpart exists for this private local repository.",
                     )
-            if public_only and getattr(remote_repo, "is_private", False):
+            if public_only and (remote_repo is None or remote_repo.is_private):
                 return Classification(
                     status="published-private",
                     match_method="local remote",
-                    repo=remote_repo,
-                    reason="The local project points to a private repository, and this run targets public sanitized repos only.",
+                    repo=remote_repo or candidate.github_remote,
+                    reason="The local project points to a private or unconfirmed repository, and this run targets public sanitized repos only.",
                 )
             return Classification(
                 status="published",
                 match_method="local remote",
-                repo=remote_repo,
+                repo=remote_repo or candidate.github_remote,
                 reason="The local project already points to a GitHub repository for this account.",
             )
         return Classification(

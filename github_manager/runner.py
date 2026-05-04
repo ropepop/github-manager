@@ -11,7 +11,7 @@ from .naming import normalize_name
 from .reporting import write_run_report
 from .sanitizer import prepare_project
 from .scanner import scan_projects
-from .syncer import sync_staged_project
+from .syncer import sync_private_project, sync_staged_project
 
 
 @dataclass
@@ -69,6 +69,23 @@ def run_manager(options: RunOptions) -> tuple[list[ProjectRunResult], Path]:
         if classification.status == "published-private":
             result.action = "skipped"
             result.detail = "Private repository skipped because this run targets public sanitized repositories."
+            results.append(result)
+            continue
+        if classification.repo and classification.repo.is_private:
+            if options.no_sync:
+                result.action = "skipped"
+                result.detail = "Sync disabled for this run."
+            else:
+                result.action = "private-sync-dry-run" if options.dry_run else "private-synced"
+                try:
+                    result.detail = sync_private_project(
+                        classification.repo,
+                        candidate.path,
+                        dry_run=options.dry_run,
+                    )
+                except RuntimeError as exc:
+                    result.action = "failed"
+                    result.detail = f"Private repository sync failed: {exc}"
             results.append(result)
             continue
 
