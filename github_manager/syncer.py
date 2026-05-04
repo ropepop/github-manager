@@ -60,6 +60,7 @@ def sync_private_project(repo: GitHubRepo, project_path: Path, dry_run: bool = F
                     "-c",
                     "user.email=github-manager@local",
                     "commit",
+                    "--no-verify",
                     "-m",
                     "Commit latest local changes",
                 ],

@@ -59,6 +59,25 @@ class SyncerTests(unittest.TestCase):
             self.assertIn("Would commit and push", detail)
             self.assertEqual((verify / "README.md").read_text(encoding="utf-8"), "original\n")
 
+    def test_private_sync_bypasses_local_commit_hooks(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            bare = tmp_path / "remote.git"
+            local = tmp_path / "local"
+            _seed_private_repo(tmp_path, bare, local)
+            hook = local / ".git" / "hooks" / "pre-commit"
+            hook.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+            hook.chmod(0o755)
+            (local / "README.md").write_text("changed despite hook\n", encoding="utf-8")
+            repo = GitHubRepo(owner="local", name="private", url=str(bare), is_private=True)
+
+            detail = sync_private_project(repo, local, dry_run=False)
+
+            verify = tmp_path / "verify-hook"
+            _run(["git", "clone", str(bare), str(verify)], tmp_path)
+            self.assertIn("Committed and pushed", detail)
+            self.assertEqual((verify / "README.md").read_text(encoding="utf-8"), "changed despite hook\n")
+
     def test_sync_replaces_remote_only_files_with_local_source(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
