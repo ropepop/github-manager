@@ -30,7 +30,7 @@ The current public outputs managed by this project are:
 - `pixel-phone`
 - `task-executor`
 
-For public-only publishing, `links` and `jolkins.id.lv` are treated as private-only, and `Qwen3-TTS-Mac-GeneLab` is treated as external and unmanaged.
+For public-only publishing, `links`, `jolkins.id.lv`, and `ticket-remote` are treated as private-only, and `Qwen3-TTS-Mac-GeneLab` is treated as external and unmanaged.
 
 ## Quick Start
 
