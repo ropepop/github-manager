@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">GitHub Manager public publishing flow</title>
+  <desc id="desc">A visual flow from private source projects through scrubbed staging, chat handoff, safety checks, and public repositories.</desc>
+  <rect width="1600" height="900" fill="#f8fafc"/>
+  <rect x="76" y="76" width="1448" height="748" rx="32" fill="#0f172a"/>
+  <text x="124" y="156" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="58" font-weight="700">GitHub Manager</text>
+  <text x="126" y="206" fill="#cbd5e1" font-family="Arial, Helvetica, sans-serif" font-size="28">Scrubbed public publishing, with a premium chat handoff</text>
+
+  <rect x="126" y="306" width="236" height="270" rx="24" fill="#1e293b" stroke="#64748b" stroke-width="3"/>
+  <text x="162" y="370" fill="#e2e8f0" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">Private</text>
+  <text x="162" y="412" fill="#94a3b8" font-family="Arial, Helvetica, sans-serif" font-size="22">source folders</text>
+  <rect x="162" y="456" width="164" height="26" rx="8" fill="#475569"/>
+  <rect x="162" y="502" width="122" height="26" rx="8" fill="#475569"/>
+
+  <path d="M390 440 H520" stroke="#38bdf8" stroke-width="8" stroke-linecap="round"/>
+  <path d="M500 416 L538 440 L500 464 Z" fill="#38bdf8"/>
+
+  <rect x="558" y="274" width="252" height="336" rx="26" fill="#0f766e" stroke="#5eead4" stroke-width="3"/>
+  <text x="610" y="344" fill="#ecfeff" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">Scrub</text>
+  <text x="610" y="392" fill="#ccfbf1" font-family="Arial, Helvetica, sans-serif" font-size="23">drop risky files</text>
+  <text x="610" y="434" fill="#ccfbf1" font-family="Arial, Helvetica, sans-serif" font-size="23">stage clean copy</text>
+  <text x="610" y="476" fill="#ccfbf1" font-family="Arial, Helvetica, sans-serif" font-size="23">write report</text>
+
+  <path d="M838 440 H968" stroke="#2dd4bf" stroke-width="8" stroke-linecap="round"/>
+  <path d="M948 416 L986 440 L948 464 Z" fill="#2dd4bf"/>
+
+  <rect x="1006" y="274" width="252" height="336" rx="26" fill="#312e81" stroke="#a5b4fc" stroke-width="3"/>
+  <text x="1054" y="344" fill="#eef2ff" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">Handoff</text>
+  <text x="1054" y="392" fill="#c7d2fe" font-family="Arial, Helvetica, sans-serif" font-size="23">README</text>
+  <text x="1054" y="434" fill="#c7d2fe" font-family="Arial, Helvetica, sans-serif" font-size="23">docs</text>
+  <text x="1054" y="476" fill="#c7d2fe" font-family="Arial, Helvetica, sans-serif" font-size="23">visual assets</text>
+
+  <path d="M1286 440 H1396" stroke="#818cf8" stroke-width="8" stroke-linecap="round"/>
+  <path d="M1376 416 L1414 440 L1376 464 Z" fill="#818cf8"/>
+
+  <rect x="1418" y="314" width="80" height="252" rx="24" fill="#ffffff"/>
+  <circle cx="1458" cy="374" r="19" fill="#22c55e"/>
+  <circle cx="1458" cy="444" r="19" fill="#22c55e"/>
+  <circle cx="1458" cy="514" r="19" fill="#22c55e"/>
+  <text x="126" y="704" fill="#e2e8f0" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700">Safety gate</text>
+  <text x="126" y="746" fill="#94a3b8" font-family="Arial, Helvetica, sans-serif" font-size="24">allowed paths, no symlinks, safe Markdown/SVG, valid image links, checked staging</text>
+</svg>
+

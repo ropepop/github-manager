@@ -37,6 +37,11 @@ class ReportingTests(unittest.TestCase):
                         archived_previous=True,
                     ),
                 ),
+                chat_handoff_action="applied",
+                chat_handoff_detail="Applied 2 chat-generated Markdown file(s) to the staged copy.",
+                chat_handoff_files=["README.md", "docs/guide.md"],
+                chat_handoff_assets=["docs/assets/hero.png"],
+                chat_handoff_path=tmp_path / "workspace" / "chat-handoff" / "run",
             )
 
             report = write_run_report(tmp_path / "workspace", [result], dry_run=True)
@@ -44,6 +49,9 @@ class ReportingTests(unittest.TestCase):
             text = report.read_text(encoding="utf-8")
             self.assertIn("README generation: ai drafted (gpt-5-mini)", text)
             self.assertIn("Previous README archived: yes", text)
+            self.assertIn("Chat handoff action: applied", text)
+            self.assertIn("Chat handoff files: `README.md`, `docs/guide.md`", text)
+            self.assertIn("Chat handoff assets: `docs/assets/hero.png`", text)
 
 
 if __name__ == "__main__":

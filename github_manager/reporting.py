@@ -46,6 +46,15 @@ def write_run_report(workspace: Path, results: list[ProjectRunResult], dry_run: 
             lines.append(f"- Private detail: {result.private_detail}")
             if result.private_repo:
                 lines.append(f"- Private repository: {result.private_repo.url}")
+        if result.chat_handoff_action != "none":
+            lines.append(f"- Chat handoff action: {result.chat_handoff_action}")
+            lines.append(f"- Chat handoff detail: {result.chat_handoff_detail}")
+            if result.chat_handoff_path:
+                lines.append(f"- Chat handoff folder: `{result.chat_handoff_path}`")
+            if result.chat_handoff_files:
+                lines.append(f"- Chat handoff files: {', '.join(f'`{path}`' for path in result.chat_handoff_files)}")
+            if result.chat_handoff_assets:
+                lines.append(f"- Chat handoff assets: {', '.join(f'`{path}`' for path in result.chat_handoff_assets)}")
         if result.prepared:
             prepared = result.prepared
             lines.extend(

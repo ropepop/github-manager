@@ -85,5 +85,10 @@ class ProjectRunResult:
     private_repo: GitHubRepo | None = None
     private_action: str = "none"
     private_detail: str = ""
+    chat_handoff_action: str = "none"
+    chat_handoff_detail: str = ""
+    chat_handoff_files: list[str] = field(default_factory=list)
+    chat_handoff_assets: list[str] = field(default_factory=list)
+    chat_handoff_path: Path | None = None
     action: str = "none"
     detail: str = ""

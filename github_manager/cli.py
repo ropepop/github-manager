@@ -57,6 +57,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="Do not create or update README notes in staged sanitized copies.",
     )
     run_parser.add_argument(
+        "--chat-handoff",
+        action="store_true",
+        help="Prepare scrubbed staging, wait for chat-generated README/docs/visual drafts, then validate and continue.",
+    )
+    run_parser.add_argument(
+        "--chat-handoff-timeout-seconds",
+        type=float,
+        default=1800,
+        help="Seconds to wait for chat handoff completion before continuing with staged copies as-is.",
+    )
+    run_parser.add_argument(
+        "--chat-handoff-poll-seconds",
+        type=float,
+        default=2,
+        help="Seconds between chat handoff completion checks.",
+    )
+    run_parser.add_argument(
         "--approve-new",
         action="append",
         default=[],
@@ -93,6 +110,9 @@ def main(argv: list[str] | None = None) -> int:
             refresh_readme=not args.no_readme_refresh,
             approve_new=set(args.approve_new),
             interactive=not args.non_interactive,
+            chat_handoff=args.chat_handoff,
+            chat_handoff_timeout_seconds=args.chat_handoff_timeout_seconds,
+            chat_handoff_poll_seconds=args.chat_handoff_poll_seconds,
         )
         results, report_path = run_manager(options)
         _print_results(results)
@@ -130,6 +150,9 @@ def _print_results(results) -> None:
             if readme_result.model:
                 label = f"{label} ({readme_result.model})"
             print(f"  README: {label}")
+        if result.chat_handoff_action != "none":
+            print(f"  Chat handoff: {result.chat_handoff_action}")
+            print(f"    {result.chat_handoff_detail}")
 
 
 if __name__ == "__main__":
