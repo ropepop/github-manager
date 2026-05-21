@@ -11,6 +11,7 @@ It is designed to be repeatable:
 - If a local folder points at a same-account private repository that is missing or not yet confirmed locally, the manager can create or confirm that private repository before pushing.
 - Original project folders are never edited during preparation.
 - Each run writes a readable report under `.github-manager/reports`.
+- Durable product docs live under `docs/`; start with [Context guide](./docs/CONTEXT.md) before reading generated state.
 
 ## Public Publishing Policy
 

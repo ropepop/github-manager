@@ -5,8 +5,8 @@ Agent-guided discovery, sanitization, publishing, and syncing of local coding pr
 ## What It Does
 
 - Agent-guided discovery, sanitization, publishing, and syncing of local coding projects to GitHub.
-- Organizes the main public surface around github_manager/, tests/, .gitignore, pyproject.toml.
-- Includes 24 public project file(s) in the sanitized copy.
+- Organizes the main public surface around docs/, github_manager/, tests/, .gitignore, pyproject.toml.
+- Includes 25 public project file(s) in the sanitized copy.
 
 ## Highlights
 
@@ -36,6 +36,7 @@ github-manager --help
 
 ## Project Map
 
+- `docs/`: Project documentation and reference material.
 - `github_manager/`: Core Python package for the manager.
 - `tests/`: Automated tests.
 - `.gitignore`: Ignore rules for generated and local-only files.
