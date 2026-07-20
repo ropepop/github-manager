@@ -59,6 +59,38 @@ class ClassifierTests(unittest.TestCase):
         self.assertEqual(result.match_method, "public counterpart")
         self.assertEqual(result.repo.name, "public-ops")
 
+    def test_private_canonical_remote_can_target_exact_public_counterpart(self) -> None:
+        candidate = ProjectCandidate(
+            path=Path("/tmp/pixel-phone"),
+            name="pixel-phone",
+            slug="pixel-phone",
+            github_remote=GitHubRepo(
+                owner="ropepop",
+                name="pixel-phone-canonical",
+                url="https://github.com/ropepop/pixel-phone-canonical",
+            ),
+        )
+        repos = [
+            GitHubRepo(
+                owner="ropepop",
+                name="pixel-phone-canonical",
+                url="https://github.com/ropepop/pixel-phone-canonical",
+                is_private=True,
+            ),
+            GitHubRepo(
+                owner="ropepop",
+                name="pixel-phone",
+                url="https://github.com/ropepop/pixel-phone",
+                is_private=False,
+            ),
+        ]
+
+        result = classify_project(candidate, repos, "ropepop", prefer_sanitized_counterpart=True, public_only=True)
+
+        self.assertEqual(result.status, "published")
+        self.assertEqual(result.match_method, "public counterpart")
+        self.assertEqual(result.repo.name, "pixel-phone")
+
     def test_public_only_skips_private_exact_match(self) -> None:
         candidate = ProjectCandidate(path=Path("/tmp/links"), name="links", slug="links")
         repos = [GitHubRepo(owner="ropepop", name="links", url="https://github.com/ropepop/links", is_private=True)]

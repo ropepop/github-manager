@@ -89,7 +89,7 @@ def classify_project(
 
 
 def _public_counterpart(slug: str, repos_by_exact: dict[str, GitHubRepo]) -> GitHubRepo | None:
-    for name in (f"public-{slug}", f"{slug}-public"):
+    for name in (slug, f"public-{slug}", f"{slug}-public"):
         repo = repos_by_exact.get(name)
         if repo and not repo.is_private:
             return repo
