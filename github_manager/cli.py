@@ -5,6 +5,7 @@ from pathlib import Path
 
 from .classifier import classify_project
 from .github import GitHubClient
+from .policies import classify_private_only, merge_candidates, private_only_candidates, private_only_repo_name
 from .runner import RunOptions, run_manager
 from .scanner import scan_projects
 
@@ -85,6 +86,13 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Never prompt for publication approval.",
     )
+    run_parser.add_argument(
+        "--only",
+        action="append",
+        default=[],
+        metavar="SLUG",
+        help="Only process the given project slug. Can be repeated.",
+    )
     return parser
 
 
@@ -113,6 +121,7 @@ def main(argv: list[str] | None = None) -> int:
             chat_handoff=args.chat_handoff,
             chat_handoff_timeout_seconds=args.chat_handoff_timeout_seconds,
             chat_handoff_poll_seconds=args.chat_handoff_poll_seconds,
+            only=set(args.only) or None,
         )
         results, report_path = run_manager(options)
         _print_results(results)
@@ -126,14 +135,17 @@ def _scan(documents_root: Path, workspace: Path, owner: str) -> int:
     client = GitHubClient(owner)
     repos = client.list_repos()
     candidates = scan_projects(documents_root, excluded_roots=[workspace])
+    candidates = merge_candidates(candidates, private_only_candidates(documents_root))
     for candidate in candidates:
-        classification = classify_project(candidate, repos, owner)
+        if private_only_repo_name(candidate.slug):
+            classification = classify_private_only(candidate.slug, repos, owner)
+        else:
+            classification = classify_project(candidate, repos, owner)
         repo = f" -> {classification.repo.url}" if classification.repo else ""
         print(f"{candidate.slug}: {classification.status} ({classification.match_method}){repo}")
         print(f"  {candidate.path}")
     print(f"\nDetected {len(candidates)} project(s).")
     return 0
-
 
 def _print_results(results) -> None:
     for result in results:

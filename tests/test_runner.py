@@ -11,6 +11,109 @@ from github_manager.runner import RunOptions, _apply_chat_handoff_drafts, run_ma
 
 
 class RunnerTests(unittest.TestCase):
+    def test_private_only_project_creates_private_repo_and_verifies(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            documents = tmp_path / "Documents"
+            workspace = tmp_path / "workspace"
+            project = documents / "My Workspace"
+            project.mkdir(parents=True)
+            (project / "README.md").write_text("private workspace\n", encoding="utf-8")
+            created = GitHubRepo(owner="ropepop", name="my-workspace", url="https://github.com/ropepop/my-workspace", is_private=True)
+            events: list[str] = []
+
+            with (
+                patch("github_manager.runner.GitHubClient") as client,
+                patch("github_manager.runner.scan_projects", return_value=[]),
+                patch("github_manager.runner.sync_private_project", return_value="pushed"),
+            ):
+                client.return_value.list_repos.return_value = []
+                client.return_value.ensure_private_repo.side_effect = lambda name: events.append(f"ensure:{name}") or created
+                client.return_value.verify_private_repo.side_effect = lambda name: events.append(f"verify:{name}") or True
+                results, _ = run_manager(
+                    RunOptions(
+                        documents_root=documents,
+                        workspace=workspace,
+                        owner="ropepop",
+                        refresh_readme=False,
+                    )
+                )
+
+            self.assertEqual(len(results), 1)
+            self.assertEqual(results[0].candidate.slug, "my-workspace")
+            self.assertEqual(results[0].classification.status, "private-only")
+            self.assertEqual(results[0].private_action, "private-synced")
+            self.assertEqual(results[0].action, "private-synced")
+            self.assertIn("Verified private on GitHub", results[0].private_detail)
+            self.assertEqual(events, ["ensure:my-workspace", "verify:my-workspace"])
+            self.assertIsNone(results[0].prepared)
+            self.assertFalse((workspace / "staging" / "my-workspace").exists())
+
+    def test_private_only_project_existing_repo_syncs_without_create(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            documents = tmp_path / "Documents"
+            workspace = tmp_path / "workspace"
+            project = documents / "iOS activity"
+            project.mkdir(parents=True)
+            (project / "README.md").write_text("ios bridge\n", encoding="utf-8")
+            existing = GitHubRepo(owner="ropepop", name="ios-activity", url="https://github.com/ropepop/ios-activity", is_private=True)
+            events: list[str] = []
+
+            with (
+                patch("github_manager.runner.GitHubClient") as client,
+                patch("github_manager.runner.scan_projects", return_value=[]),
+                patch("github_manager.runner.sync_private_project", return_value="pushed"),
+            ):
+                client.return_value.list_repos.return_value = [existing]
+                client.return_value.ensure_private_repo.side_effect = lambda name: events.append(f"ensure:{name}") or existing
+                client.return_value.verify_private_repo.side_effect = lambda name: events.append(f"verify:{name}") or True
+                results, _ = run_manager(
+                    RunOptions(
+                        documents_root=documents,
+                        workspace=workspace,
+                        owner="ropepop",
+                        refresh_readme=False,
+                    )
+                )
+
+            self.assertEqual(len(results), 1)
+            self.assertEqual(results[0].candidate.slug, "ios-activity")
+            self.assertEqual(results[0].action, "private-synced")
+            self.assertEqual(events, ["verify:ios-activity"])
+
+    def test_private_only_project_dry_run_does_not_create_or_verify(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            documents = tmp_path / "Documents"
+            workspace = tmp_path / "workspace"
+            project = documents / "My Workspace"
+            project.mkdir(parents=True)
+            (project / "README.md").write_text("private workspace\n", encoding="utf-8")
+
+            with (
+                patch("github_manager.runner.GitHubClient") as client,
+                patch("github_manager.runner.scan_projects", return_value=[]),
+                patch("github_manager.runner.sync_private_project", return_value="would push"),
+            ):
+                client.return_value.list_repos.return_value = []
+                client.return_value.ensure_private_repo.side_effect = AssertionError("must not create in dry run")
+                client.return_value.verify_private_repo.side_effect = AssertionError("must not verify in dry run")
+                results, _ = run_manager(
+                    RunOptions(
+                        documents_root=documents,
+                        workspace=workspace,
+                        owner="ropepop",
+                        dry_run=True,
+                        refresh_readme=False,
+                    )
+                )
+
+            self.assertEqual(len(results), 1)
+            self.assertEqual(results[0].private_action, "private-sync-dry-run")
+            self.assertEqual(results[0].action, "private-sync-dry-run")
+            self.assertIn("Would create or confirm private repository", results[0].private_detail)
+
     def test_private_repo_uses_direct_sync_without_sanitizing(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)

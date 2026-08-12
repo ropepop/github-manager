@@ -105,6 +105,15 @@ class GitHubClient:
             raise RuntimeError(result.stderr.strip() or result.stdout.strip())
         return GitHubRepo(owner=self.owner, name=name, url=f"https://github.com/{full_name}", is_private=True)
 
+    def verify_private_repo(self, name: str) -> bool:
+        """Confirm a repository exists and is private on GitHub."""
+        full_name = f"{self.owner}/{name}"
+        view = run_command(["gh", "repo", "view", full_name, "--json", "name,isPrivate"])
+        if view.returncode != 0:
+            raise RuntimeError(view.stderr.strip() or f"Unable to verify {full_name}.")
+        payload = json.loads(view.stdout)
+        return bool(payload.get("isPrivate"))
+
 
 def ensure_git_commit(path: Path, message: str) -> None:
     if not (path / ".git").exists():

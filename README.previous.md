@@ -31,7 +31,7 @@ The current public outputs managed by this project are:
 - `pixel-phone`
 - `task-executor`
 
-For public-only publishing, `links`, `jolkins.id.lv`, and `ticket-remote` are treated as private-only, and `Qwen3-TTS-Mac-GeneLab` is treated as external and unmanaged.
+For public-only publishing, `links`, `jolkins.id.lv`, `ticket-remote`, `My Workspace`, and `iOS activity` are treated as private-only. `My Workspace` and `iOS activity` are pushed to private repositories `ropepop/my-workspace` and `ropepop/ios-activity` (created on first sync) and are never staged or published publicly. `Qwen3-TTS-Mac-GeneLab` is treated as external and unmanaged.
 
 ## Quick Start
 

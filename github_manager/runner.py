@@ -14,6 +14,7 @@ from .classifier import classify_project
 from .github import GitHubClient
 from .models import GitHubRepo, ProjectRunResult
 from .naming import normalize_name
+from .policies import classify_private_only, merge_candidates, private_only_candidates, private_only_repo_name
 from .reporting import write_run_report
 from .sanitizer import inspect_source, prepare_project
 from .scanner import scan_projects
@@ -43,6 +44,7 @@ class RunOptions:
     chat_handoff_timeout_seconds: float = 1800
     chat_handoff_poll_seconds: float = 2
     chat_handoff_run_id: str | None = None
+    only: set[str] | None = None
 
 
 def run_manager(options: RunOptions) -> tuple[list[ProjectRunResult], Path]:
@@ -54,6 +56,9 @@ def run_manager(options: RunOptions) -> tuple[list[ProjectRunResult], Path]:
     client = GitHubClient(options.owner)
     repos = client.list_repos()
     candidates = scan_projects(options.documents_root, excluded_roots=[workspace])
+    candidates = merge_candidates(candidates, private_only_candidates(options.documents_root))
+    if options.only:
+        candidates = [candidate for candidate in candidates if candidate.slug in options.only]
     if options.sanitized_counterparts:
         candidates = _with_public_counterpart_candidates(candidates, options.documents_root, workspace, repos)
     results: list[ProjectRunResult] = []
@@ -70,6 +75,10 @@ def run_manager(options: RunOptions) -> tuple[list[ProjectRunResult], Path]:
             public_only=options.public_only,
         )
         result = ProjectRunResult(candidate=candidate, classification=classification)
+        if private_only_repo_name(candidate.slug):
+            _run_private_only(result, options, client, repos, targeted_private_repos)
+            results.append(result)
+            continue
         if options.private_first and (options.public_only or options.sanitized_counterparts):
             _run_private_first(result, options, client, repos, targeted_private_repos)
             if result.private_action == "failed":
@@ -192,6 +201,42 @@ def run_manager(options: RunOptions) -> tuple[list[ProjectRunResult], Path]:
 
     report_path = write_run_report(workspace, results, options.dry_run)
     return results, report_path
+
+def _run_private_only(
+    result: ProjectRunResult,
+    options: RunOptions,
+    client: GitHubClient,
+    repos: list[GitHubRepo],
+    targeted_private_repos: set[str],
+) -> None:
+    repo_name = private_only_repo_name(result.candidate.slug)
+    if repo_name is None:
+        raise ValueError(f"{result.candidate.slug} is not a private-only project.")
+    result.classification = classify_private_only(result.candidate.slug, repos, options.owner)
+    _run_private_first(result, options, client, repos, targeted_private_repos)
+    if result.private_action == "private-synced" and not options.dry_run:
+        try:
+            if client.verify_private_repo(repo_name):
+                result.private_detail = f"{result.private_detail} Verified private on GitHub."
+            else:
+                result.private_action = "failed"
+                result.private_detail = f"{result.private_detail} Verification failed: repository is not private."
+        except RuntimeError as exc:
+            result.private_action = "failed"
+            result.private_detail = f"{result.private_detail} Verification failed: {exc}"
+    if result.private_action == "failed":
+        result.action = "failed"
+        result.detail = result.private_detail
+    elif result.private_action == "skipped":
+        result.action = "skipped"
+        result.detail = result.private_detail or "Private sync disabled for this run."
+    elif result.private_action == "private-sync-dry-run":
+        result.action = "private-sync-dry-run"
+        result.detail = result.private_detail
+    else:
+        verified = " and verified" if "Verified private" in result.private_detail else ""
+        result.action = "private-synced"
+        result.detail = f"Private-only project synced{verified}; no public copy is published."
 
 
 def _finish_existing_public_result(result: ProjectRunResult, options: RunOptions, workspace: Path) -> None:
@@ -595,6 +640,23 @@ def _private_repo_for_candidate(
 ) -> tuple[GitHubRepo | None, bool]:
     repos_by_name = {repo.name: repo for repo in repos}
     repos_by_exact = {normalize_name(repo.name): repo for repo in repos}
+
+    policy_name = private_only_repo_name(candidate.slug)
+    if policy_name:
+        repo = repos_by_name.get(policy_name)
+        if repo and not repo.is_private:
+            raise RuntimeError(f"{owner}/{policy_name} already exists, but it is not private.")
+        if repo:
+            return repo, False
+        return (
+            GitHubRepo(
+                owner=owner,
+                name=policy_name,
+                url=f"https://github.com/{owner}/{policy_name}",
+                is_private=True,
+            ),
+            True,
+        )
 
     if candidate.github_remote:
         if candidate.github_remote.owner != owner:

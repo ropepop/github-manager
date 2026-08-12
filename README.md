@@ -6,7 +6,7 @@ Agent-guided discovery, sanitization, publishing, and syncing of local coding pr
 
 - Agent-guided discovery, sanitization, publishing, and syncing of local coding projects to GitHub.
 - Organizes the main public surface around docs/, github_manager/, tests/, .gitignore, pyproject.toml.
-- Includes 25 public project file(s) in the sanitized copy.
+- Includes 27 public project file(s) in the sanitized copy.
 
 ## Highlights
 
